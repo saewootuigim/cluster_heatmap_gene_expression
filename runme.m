@@ -12,17 +12,31 @@ clear
 clc
 
 list = dir('data');
+fileCount = 0;
+elapseTotal = 0;
+fileSizeTotal = 0;
 for i = 1 : length(list)
     if strcmp(list(i).name,'.') || strcmp(list(i).name,'..') || list(i).isdir
         % skip directories
         continue
     elseif ~contains(list(i).name, '.txt')
-        error('Input data must be tab delimited and have .txt extension.')
+        warning('skipping file wiht non txt extension.')
+        continue
+%         error('Input data must be tab delimited and have .txt extension.')
+    end
+    
+    % Print estimated time of completion.
+    t = tic;
+    fileCount = fileCount + 1;
+    fprintf('processing %s\n', list(i).name)
+    fileSizeCurrent = list(i).bytes;
+    fileSizeTotal = fileSizeTotal + fileSizeCurrent;
+    if fileCount > 1
+        eta = elapseTotal/fileSizeTotal*fileSizeCurrent;
+        fprintf('\testimated time of completion = %.3fs.\n',eta)
     end
     
     % Read file.
-    tic
-    fprintf('processing %s ', list(i).name)    
     fileName = [list(i).folder, filesep, list(i).name];
     S = tdfread(fileName);
     
@@ -46,7 +60,7 @@ for i = 1 : length(list)
     end
     
     % Draw.
-    obj = clustergram(logGeneExprs,'Colormap','redbluecmap','Standardize','column');
+    obj = clustergram(logGeneExprs,'Colormap','redbluecmap','Standardize','column','Cluster','column');
     
     % Get clustergram as a figure handle.
     hFig = findall(0,'type','figure', 'tag', 'Clustergram');
@@ -62,7 +76,9 @@ for i = 1 : length(list)
     print(hFig,strrep(figLoc,'.txt','.pdf'),'-dpdf','-painters')
     print(hFig,strrep(figLoc,'.txt','.png'),'-dpng','-r300')
     
-    % Close figure and print elapse.
+    % Wrap up.
     close(hFig)
-    fprintf(' elapse: %.2fs.\n', toc)
+    elapse = toc(t);
+    elapseTotal = elapseTotal + elapse;
+    fprintf('\t   actual time to complete   = %.3fs.\n\n',elapse)
 end
